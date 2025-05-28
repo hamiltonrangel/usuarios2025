@@ -2,323 +2,71 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Visualizador de Planilha</title>
+    <title>Visualizador de Planilha - Debug</title>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 20px;
-            line-height: 1.6;
-            background-color: #f9f9f9;
+        /* Estilos anteriores... */
+        #debug-panel {
+            margin-top: 30px;
+            padding: 15px;
+            background: #f0f0f0;
+            border-radius: 5px;
+            font-family: monospace;
         }
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            background: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
-        h1 {
-            color: #1a73e8;
-            text-align: center;
-            margin-bottom: 30px;
-        }
-        table {
-            border-collapse: collapse;
-            width: 100%;
-            margin-top: 20px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-        }
-        th, td {
-            border: 1px solid #ddd;
-            padding: 12px;
-            text-align: left;
-        }
-        th {
-            background-color: #1a73e8;
-            color: white;
-            font-weight: bold;
-            position: sticky;
-            top: 0;
-        }
-        tr:nth-child(even) {
-            background-color: #f9f9f9;
-        }
-        tr:hover {
-            background-color: #f1f1f1;
-        }
-        .loading {
-            text-align: center;
-            padding: 40px;
-            font-style: italic;
-            color: #666;
-            font-size: 18px;
-        }
-        .error {
-            color: #d32f2f;
-            font-weight: bold;
-            padding: 20px;
-            text-align: center;
-            background: #ffebee;
-            border-radius: 4px;
-            margin: 20px 0;
-        }
-        .controls {
-            margin: 25px 0;
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-        }
-        button {
-            padding: 10px 20px;
-            background-color: #1a73e8;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 16px;
-            transition: background-color 0.3s;
-        }
-        button:hover {
-            background-color: #0d5bba;
-        }
-        .search-container {
-            margin: 20px 0;
-        }
-        #search-input {
-            padding: 10px;
-            width: 300px;
-            max-width: 100%;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            font-size: 16px;
-        }
-        .pagination {
-            display: flex;
-            justify-content: center;
-            margin-top: 20px;
-            gap: 5px;
-        }
-        .pagination button {
-            min-width: 40px;
-        }
-        .stats {
-            margin-top: 20px;
-            font-style: italic;
-            color: #666;
+        .debug-log {
+            white-space: pre-wrap;
+            margin: 5px 0;
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>Visualizador de Planilha</h1>
-        
-        <div class="controls">
-            <button id="refresh-btn">↻ Atualizar Dados</button>
-            <div class="search-container">
-                <input type="text" id="search-input" placeholder="Pesquisar...">
-                <button id="search-btn">🔍 Pesquisar</button>
-            </div>
-        </div>
-        
-        <div id="sheet-info"></div>
-        <div id="data-container">
-            <div class="loading">Carregando dados da planilha...</div>
-        </div>
-        
-        <div class="pagination" id="pagination-container"></div>
-        <div class="stats" id="stats-container"></div>
+    <!-- Conteúdo anterior... -->
+    
+    <div id="debug-panel">
+        <h3>Painel de Diagnóstico</h3>
+        <div id="debug-log"></div>
     </div>
 
     <script>
-        // URL do seu Google Apps Script Web App
-        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyADsBFlYhXuHxy0C_sWe8QYp311qnt9zv2eoO5WpidHwmiR2V2QPtnxNjT_LDoZo0-/exec';
-        
-        // Variáveis globais
-        let allData = [];
-        let currentPage = 1;
-        const rowsPerPage = 20;
-        
-        // Elementos da página
-        const dataContainer = document.getElementById('data-container');
-        const sheetInfo = document.getElementById('sheet-info');
-        const refreshBtn = document.getElementById('refresh-btn');
-        const searchInput = document.getElementById('search-input');
-        const searchBtn = document.getElementById('search-btn');
-        const paginationContainer = document.getElementById('pagination-container');
-        const statsContainer = document.getElementById('stats-container');
-        
-        // Função para carregar os dados
+        // Função para logar eventos
+        function debugLog(message) {
+            const now = new Date().toISOString().split('T')[1].split('.')[0];
+            const logElement = document.createElement('div');
+            logElement.className = 'debug-log';
+            logElement.textContent = `[${now}] ${message}`;
+            document.getElementById('debug-log').prepend(logElement);
+            console.log(message);
+        }
+
+        // Função loadSheetData atualizada
         async function loadSheetData() {
             try {
-                dataContainer.innerHTML = '<div class="loading">Carregando dados da planilha...</div>';
-                statsContainer.textContent = '';
-                paginationContainer.innerHTML = '';
+                debugLog('Iniciando carregamento...');
                 
-                const response = await fetch(SCRIPT_URL);
-                
-                if (!response.ok) {
-                    throw new Error(`Erro HTTP: ${response.status}`);
+                const testConnection = await fetch('https://www.google.com');
+                if (!testConnection.ok) {
+                    throw new Error('Sem conexão com a internet');
                 }
-                
-                const data = await response.json();
-                
-                // Verificar se há erro
-                if (data.error) {
-                    throw new Error(data.error);
+                debugLog('Conexão com internet OK');
+
+                const apiTest = await fetch(SCRIPT_URL);
+                if (!apiTest.ok) {
+                    throw new Error('API não respondeu corretamente');
                 }
-                
-                // Verificar se há dados
-                if (!data || data.length === 0) {
-                    dataContainer.innerHTML = '<div class="error">Nenhum dado encontrado na planilha.</div>';
-                    return;
-                }
-                
-                allData = data;
-                currentPage = 1;
-                renderTable(allData);
-                updateStats(allData.length);
+                debugLog('API respondeu com status: ' + apiTest.status);
+
+                // Restante do código...
                 
             } catch (error) {
-                console.error('Erro:', error);
-                dataContainer.innerHTML = `<div class="error">Erro ao carregar dados: ${error.message}</div>`;
+                debugLog('ERRO: ' + error.message);
+                // Tratamento de erro...
             }
         }
-        
-        // Função para renderizar a tabela
-        function renderTable(data) {
-            if (data.length === 0) {
-                dataContainer.innerHTML = '<div class="error">Nenhum resultado encontrado.</div>';
-                return;
-            }
-            
-            // Criar tabela HTML com os dados
-            let tableHTML = '<table>';
-            
-            // Adicionar cabeçalhos (primeira linha)
-            tableHTML += '<thead><tr>';
-            data[0].forEach(header => {
-                tableHTML += `<th>${header}</th>`;
-            });
-            tableHTML += '</tr></thead>';
-            
-            // Adicionar linhas de dados (paginadas)
-            tableHTML += '<tbody>';
-            const start = (currentPage - 1) * rowsPerPage + 1;
-            const end = Math.min(start + rowsPerPage, data.length);
-            
-            for (let i = start; i < end; i++) {
-                tableHTML += '<tr>';
-                data[i].forEach(cell => {
-                    tableHTML += `<td>${cell}</td>`;
-                });
-                tableHTML += '</tr>';
-            }
-            tableHTML += '</tbody></table>';
-            
-            dataContainer.innerHTML = tableHTML;
-            renderPagination(data.length);
-        }
-        
-        // Função para renderizar a paginação
-        function renderPagination(totalRows) {
-            const totalPages = Math.ceil((totalRows - 1) / rowsPerPage);
-            
-            if (totalPages <= 1) {
-                paginationContainer.innerHTML = '';
-                return;
-            }
-            
-            let paginationHTML = '';
-            
-            // Botão Anterior
-            paginationHTML += `<button onclick="changePage(${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''}>‹</button>`;
-            
-            // Páginas
-            const maxVisiblePages = 5;
-            let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
-            let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
-            
-            if (endPage - startPage + 1 < maxVisiblePages) {
-                startPage = Math.max(1, endPage - maxVisiblePages + 1);
-            }
-            
-            if (startPage > 1) {
-                paginationHTML += `<button onclick="changePage(1)">1</button>`;
-                if (startPage > 2) {
-                    paginationHTML += `<button disabled>...</button>`;
-                }
-            }
-            
-            for (let i = startPage; i <= endPage; i++) {
-                paginationHTML += `<button onclick="changePage(${i})" ${i === currentPage ? 'style="background-color:#0d5bba"' : ''}>${i}</button>`;
-            }
-            
-            if (endPage < totalPages) {
-                if (endPage < totalPages - 1) {
-                    paginationHTML += `<button disabled>...</button>`;
-                }
-                paginationHTML += `<button onclick="changePage(${totalPages})">${totalPages}</button>`;
-            }
-            
-            // Botão Próximo
-            paginationHTML += `<button onclick="changePage(${currentPage + 1})" ${currentPage === totalPages ? 'disabled' : ''}>›</button>`;
-            
-            paginationContainer.innerHTML = paginationHTML;
-        }
-        
-        // Função para mudar de página
-        function changePage(page) {
-            if (page < 1 || page > Math.ceil((allData.length - 1) / rowsPerPage)) return;
-            currentPage = page;
-            renderTable(allData);
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-        }
-        
-        // Função para atualizar estatísticas
-        function updateStats(totalRows) {
-            statsContainer.textContent = `Total de registros: ${totalRows - 1} | Página ${currentPage} de ${Math.ceil((totalRows - 1) / rowsPerPage)}`;
-        }
-        
-        // Função para pesquisar dados
-        function searchData() {
-            const searchTerm = searchInput.value.toLowerCase();
-            
-            if (!searchTerm) {
-                currentPage = 1;
-                renderTable(allData);
-                updateStats(allData.length);
-                return;
-            }
-            
-            const filteredData = [allData[0]]; // Manter cabeçalhos
-            
-            for (let i = 1; i < allData.length; i++) {
-                if (allData[i].some(cell => 
-                    cell && cell.toString().toLowerCase().includes(searchTerm)
-                ) {
-                    filteredData.push(allData[i]);
-                }
-            }
-            
-            currentPage = 1;
-            renderTable(filteredData);
-            updateStats(filteredData.length);
-        }
-        
-        // Event listeners
-        refreshBtn.addEventListener('click', loadSheetData);
-        searchBtn.addEventListener('click', searchData);
-        searchInput.addEventListener('keyup', (e) => {
-            if (e.key === 'Enter') searchData();
+
+        // Iniciar automaticamente
+        window.addEventListener('DOMContentLoaded', () => {
+            debugLog('Página carregada - iniciando processo');
+            loadSheetData();
         });
-        
-        // Carregar os dados quando a página for carregada
-        window.addEventListener('DOMContentLoaded', loadSheetData);
-        
-        // Expor funções para o escopo global (para os botões de paginação)
-        window.changePage = changePage;
     </script>
 </body>
 </html>
