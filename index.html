@@ -2,24 +2,58 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <title>Visualizador de Planilha - Debug</title>
+    <title>Visualizador de Planilha</title>
     <style>
-        /* Estilos anteriores... */
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            line-height: 1.6;
+        }
+        #data-container {
+            margin-top: 20px;
+            min-height: 100px;
+            border: 1px dashed #ccc;
+            padding: 15px;
+            border-radius: 5px;
+        }
+        .loading {
+            color: #666;
+            font-style: italic;
+        }
+        .error {
+            color: #d32f2f;
+            padding: 10px;
+            background-color: #ffebee;
+            border-radius: 4px;
+        }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin-top: 20px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
         #debug-panel {
             margin-top: 30px;
             padding: 15px;
-            background: #f0f0f0;
+            background: #f5f5f5;
             border-radius: 5px;
             font-family: monospace;
-        }
-        .debug-log {
-            white-space: pre-wrap;
-            margin: 5px 0;
         }
     </style>
 </head>
 <body>
-    <!-- Conteúdo anterior... -->
+    <h1>Visualizador de Planilha</h1>
+    <button id="load-btn">Carregar Dados</button>
+    <div id="data-container">
+        <div class="loading">Aguardando ação...</div>
+    </div>
     
     <div id="debug-panel">
         <h3>Painel de Diagnóstico</h3>
@@ -27,46 +61,98 @@
     </div>
 
     <script>
-        // Função para logar eventos
-        function debugLog(message) {
-            const now = new Date().toISOString().split('T')[1].split('.')[0];
-            const logElement = document.createElement('div');
-            logElement.className = 'debug-log';
-            logElement.textContent = `[${now}] ${message}`;
-            document.getElementById('debug-log').prepend(logElement);
+        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyADsBFlYhXuHxy0C_sWe8QYp311qnt9zv2eoO5WpidHwmiR2V2QPtnxNjT_LDoZo0-/exec';
+        const dataContainer = document.getElementById('data-container');
+        const debugLog = document.getElementById('debug-log');
+        
+        function logDebug(message) {
+            const now = new Date().toLocaleTimeString();
+            debugLog.innerHTML += `<div>[${now}] ${message}</div>`;
             console.log(message);
         }
-
-        // Função loadSheetData atualizada
-        async function loadSheetData() {
+        
+        async function loadData() {
             try {
-                debugLog('Iniciando carregamento...');
+                // Resetar container
+                dataContainer.innerHTML = '<div class="loading">Carregando dados...</div>';
+                logDebug('Iniciando requisição...');
                 
-                const testConnection = await fetch('https://www.google.com');
-                if (!testConnection.ok) {
+                // Testar conexão com a internet primeiro
+                try {
+                    await fetch('https://www.google.com', { mode: 'no-cors' });
+                    logDebug('Conexão com internet OK');
+                } catch (e) {
                     throw new Error('Sem conexão com a internet');
                 }
-                debugLog('Conexão com internet OK');
-
-                const apiTest = await fetch(SCRIPT_URL);
-                if (!apiTest.ok) {
-                    throw new Error('API não respondeu corretamente');
+                
+                // Fazer requisição para o Google Apps Script
+                // Adicionar timestamp para evitar cache
+                const url = `${SCRIPT_URL}?timestamp=${Date.now()}`;
+                logDebug(`Enviando requisição para: ${url}`);
+                
+                const response = await fetch(url);
+                logDebug(`Resposta recebida: ${response.status}`);
+                
+                if (!response.ok) {
+                    throw new Error(`Erro HTTP: ${response.status}`);
                 }
-                debugLog('API respondeu com status: ' + apiTest.status);
-
-                // Restante do código...
+                
+                const result = await response.json();
+                logDebug('Dados parseados com sucesso');
+                
+                if (result.status !== 'success') {
+                    throw new Error(result.message || 'Erro no servidor');
+                }
+                
+                // Exibir dados
+                displayData(result.data);
+                logDebug('Dados exibidos com sucesso');
                 
             } catch (error) {
-                debugLog('ERRO: ' + error.message);
-                // Tratamento de erro...
+                const errorMsg = `ERRO: ${error.message}`;
+                logDebug(errorMsg);
+                dataContainer.innerHTML = `<div class="error">${errorMsg}</div>`;
+                
+                // Mostrar botão de tentar novamente
+                const retryBtn = document.createElement('button');
+                retryBtn.textContent = 'Tentar Novamente';
+                retryBtn.onclick = loadData;
+                dataContainer.appendChild(retryBtn);
             }
         }
-
-        // Iniciar automaticamente
-        window.addEventListener('DOMContentLoaded', () => {
-            debugLog('Página carregada - iniciando processo');
-            loadSheetData();
-        });
+        
+        function displayData(data) {
+            if (!data || data.length === 0) {
+                dataContainer.innerHTML = '<div class="error">Nenhum dado encontrado</div>';
+                return;
+            }
+            
+            let html = '<table><thead><tr>';
+            
+            // Cabeçalhos (primeira linha)
+            data[0].forEach(cell => {
+                html += `<th>${cell}</th>`;
+            });
+            html += '</tr></thead><tbody>';
+            
+            // Dados (linhas seguintes)
+            for (let i = 1; i < data.length; i++) {
+                html += '<tr>';
+                data[i].forEach(cell => {
+                    html += `<td>${cell}</td>`;
+                });
+                html += '</tr>';
+            }
+            
+            html += '</tbody></table>';
+            dataContainer.innerHTML = html;
+        }
+        
+        // Event listeners
+        document.getElementById('load-btn').addEventListener('click', loadData);
+        
+        // Log inicial
+        logDebug('Sistema iniciado. Clique em "Carregar Dados" para começar.');
     </script>
 </body>
 </html>
